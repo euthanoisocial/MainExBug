@@ -1,6 +1,7 @@
 #pragma once
 #include "CharacterMachine.h"
 #include "Protocol.h"
+#include "CharacterMachine.h"
 #if(SLOTPET2)
 typedef float vec_t;
 
@@ -31,7 +32,7 @@ typedef unsigned long dword;
 #define EQUIPMENT_PENTAGRAM1		12 
 #define EQUIPMENT_PENTAGRAM2		15  //13
 #define EQUIPMENT_STONE_MAGIC		16
-#define MAX_SLOT_MACHINE			17
+//#define MAX_SLOT_MACHINE			17
 #define MyInventory_EquipmentWindowProcess		((bool(__thiscall*)(UIMyInventory* thisa)) 0x00837A30)
 //--------------------------------------
 typedef struct tagEQUIPMENT_ITEM
@@ -364,6 +365,7 @@ bool g_CheckBugLive(OBJECT* Owner, int Index);
 void Delect_FlyBug(int Owner);
 void Create_FlyBug(int Type, int Position, int Owner, int SubType, int LinkBone);
 bool CreatePet_Process(int itemType, int modelType, float* Position, int Owner, int SubType, int LinkBone);
+void SetCharacterEffectEquip(int c);
 //tue add ///////////////////////
 void MoveMuunBugs();
 void DelectMuunBug(int Owner);
@@ -411,6 +413,11 @@ typedef struct
 class CNewUIMyInventory
 {
 public:
+	CRITICAL_SECTION m_CharacterMachinCS; // Thêm critical section
+	// ...
+public:
+	CNewUIMyInventory();
+	virtual ~CNewUIMyInventory();
 	void Init();
 	void ReceiveInventory(BYTE* ReceiveBuffer);
 	void ReceiveDurability(BYTE* ReceiveBuffer);
@@ -441,9 +448,48 @@ public:
 
 	static void __thiscall RenderLeft(int thls);
 };
+/*
+class CNewUIMyInventory
+{
+private:
+	CRITICAL_SECTION m_CharacterMachinCS; // Thêm critical section
+	// ...
+public:
+	CNewUIMyInventory();
+	virtual ~CNewUIMyInventory();
+	void Init();
+	void ReceiveInventory(BYTE* ReceiveBuffer);
+	void ReceiveDurability(BYTE* ReceiveBuffer);
+	void ReceiveItemChange(BYTE* ReceiveBuffer);
+	void ReceiveDeleteInventory(BYTE* ReceiveBuffer);
+	//--
+	static void LoadImages();
+	static void Backup_PickedItem();
+	static bool __thiscall Update(DWORD* a1);
+	static void __thiscall RenderFrame(UIMyInventory* thisa);
+	static void __thiscall SetButtonInfo(DWORD* This);
+	static void __thiscall Render3D(signed int* thisa);
+	static bool __thiscall InventoryProcess(int thisa);
+	static void __thiscall RenderEquippedItem(UIMyInventory* thisa);
+	static bool __thiscall EquipmentWindowProcess(UIMyInventory* thisa);
+	static void __thiscall SetEquipmentSlotInfo(UIMyInventory* thisa);
+	static void __thiscall RenderItemToolTip(int thisa, int iSlotIndex);
+	static void RenderEquipped(GLuint uiImageType, float x, float y, float width, float height);
+	static void __thiscall RenderDetailsText(int thisa, int iPos_x, int iPos_y, LPCSTR pszText, int iBoxWidth, int iBoxHeight, int iSort, OUT SIZE* lpTextSize);
+	//--
+	static bool __thiscall NewUIManager_Render(int thls);
 
+	static void __thiscall RenderLeft(int thls);
+
+	// Add a public getter for m_CharacterMachinCS
+	CRITICAL_SECTION& GetCharacterMachinCS() { return m_CharacterMachinCS; }
+}; */
+extern CNewUIMyInventory* pNewUIMyInventory; // Khai báo biến toàn cục
+extern BYTE ButterFly[6480];
+extern BYTE ButterMuun[648 * MAX_BUTTERFLES];
 extern int TypeInventory;
 extern BYTE t;
 extern CNewUIMyInventory g_pMyInventory;
 extern CCharacterMachine* Character_Machin;
+
 #endif

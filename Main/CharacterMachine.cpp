@@ -1,4 +1,4 @@
-#include "StdAfx.h"
+﻿#include "StdAfx.h"
 #include "Defines.h"
 #include "Extras.h"
 #include "NewUISystem.h"
@@ -12,6 +12,9 @@
 #include "SEASON3B.h"
 //tue add
 #include "GIPetManager.h"
+#include <iostream>
+#include <fstream>
+using namespace std; // Hoặc dùng std::ofstream trong code
 CCharacterMachine::CCharacterMachine(void)
 {
 }
@@ -134,7 +137,8 @@ void CreateEffectEquipping(WORD Type, int pCha, int o)
 
 void CCharacterMachine::EquipItem(int iIndex, BYTE* pbyItemPacket)
 {
-	if (iIndex < 0 || iIndex >= 16) { return; }
+	//if (iIndex < 0 || iIndex >= 16) { return; }
+	if (iIndex < 0 || iIndex >= 17) { return; }
 
 	zITEM* ip = &this->Equipment[iIndex];
 	if (ip->Type != 0xFFFF || ip->Type != -1)
@@ -240,10 +244,15 @@ void DelectIndexPetBug(OBJECT* Owner, int Index)
 		}
 	}
 }
-
+/*
 void CCharacterMachine::Unequip_Item(int iIndex)
 {
-	if (iIndex < 0 || iIndex >= 16) { return; }
+	if (this == nullptr) {
+		// Ghi log lỗi hoặc xử lý phù hợp
+		return;
+	}
+	//if (iIndex < 0 || iIndex >= 16) { return; }
+	if (iIndex < 0 || iIndex >= 17) { return; }
 
 	zITEM* ip = &this->Equipment[iIndex];
 
@@ -267,10 +276,67 @@ void CCharacterMachine::Unequip_Item(int iIndex)
 		((void(__cdecl*)(int)) 0x0057F410)(Hero);
 	}
 }
+*/
+void CCharacterMachine::Unequip_Item(int iIndex) {
+
+	std::ofstream logfile("muun_debug.log", std::ios::app);
+	if (logfile.is_open()) {
+		logfile << "Unequip_Item called" << std::endl;
+		logfile << "this address: " << this << std::endl;
+		if (this != nullptr) {
+			logfile << "this->Equipment address: " << this->Equipment << std::endl;
+		}
+		logfile << "iIndex: " << iIndex << std::endl;
+		logfile.close();
+	}
+
+	if (this == nullptr || this->Equipment == nullptr) {
+		return;
+	}
+
+	if (iIndex < 0 || iIndex >= 17) {
+		return;
+	}
+
+	zITEM* ip = &this->Equipment[iIndex];
+	if (ip == nullptr) {
+		return;
+	}
+
+	ip->Type = -1;
+	ip->Level = 0;
+	ip->Number = -1;
+	ip->Option1 = 0;
+	ip->ExtOption = 0;
+	ip->SocketCount = 0;
+	for (int j = 0; j < MAX_SOCKETS_; ++j) {
+		ip->SocketSeedID[j] = SOCKET_EMPTY_;
+		ip->SocketSphereLv[j] = 0;
+	}
+	ip->SocketSeedSetOption = 0;
+
+	if (iIndex == 12) {
+		Delect_FlyBug(Hero + 776);
+		*(WORD*)(Hero + 592) = 0xFFFF;
+		((void(__cdecl*)(int)) 0x0057F410)(Hero);
+	}
+}
 
 void CCharacterMachine::UnequipAllItems()
 {
-	for (int i = 0; i < 16; i++)
+	std::ofstream logfile("muun_debug.log", std::ios::app);
+	if (logfile.is_open()) {
+		logfile << "UnequipAllItems called" << std::endl;
+		logfile << "this address: " << this << std::endl;
+		logfile.close();
+	}
+
+	if (this == nullptr) {
+		// Ghi log lỗi hoặc xử lý phù hợp
+		return;
+	}
+	//for (int i = 0; i < 16; i++)
+	for (int i = 0; i < 17; i++)
 	{
 		this->Unequip_Item(i);
 	}
@@ -395,7 +461,7 @@ bool CCharacterMachine::UnEquipmentWindowProcess(int m_iPointedSlot, int TypeInv
 
 	if (gInterface.CheckWindow(ObjWindow::Shop) || gInterface.CheckWindow(ObjWindow::Warehouse) ||
 		gInterface.CheckWindow(ObjWindow::ExpandWarehouse) || gInterface.CheckWindow(ObjWindow::Trade)
-		|| gInterface.CheckWindow(ObjWindow::ChaosBox)) //VERIFICA��O PARA N�O VENDER O PET NO SHOP //Check trade th�o pet2
+		|| gInterface.CheckWindow(ObjWindow::ChaosBox)) //VERIFICAÇÃO PARA NÃO VENDER O PET NO SHOP //Check trade tháo pet2
 	{
 		return 0;
 	}

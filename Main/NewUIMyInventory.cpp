@@ -19,6 +19,8 @@
 #include "NewUIButton.h"
 #include "GIPetManager.h"
 ////////////////////////
+CNewUIMyInventory* pNewUIMyInventory = nullptr; // Khởi tạo biến toàn cục
+// ..
 int TimerPost = 0;
 CNewUIButton m_ChangeNext;
 CNewUIButton m_ChangeBack;
@@ -36,6 +38,21 @@ DNewUIButton* m_BtnMove[2];
 int TypeInventory = 1;
 BYTE t = 0;
 
+CNewUIMyInventory::CNewUIMyInventory()
+{
+	// ...
+	InitializeCriticalSection(&m_CharacterMachinCS); // Khởi tạo critical section
+	// ...
+	pNewUIMyInventory = this; // Gán giá trị cho biến toàn cục
+}
+
+CNewUIMyInventory::~CNewUIMyInventory()
+{
+	// ...
+	DeleteCriticalSection(&m_CharacterMachinCS); // Xóa critical section
+	pNewUIMyInventory = nullptr; // Đặt biến toàn cục về nullptr khi đối tượng bị hủy
+	// ...
+}
 void Delect_FlyBug(int Owner)
 {
 	BYTE* o;
@@ -353,8 +370,11 @@ void SetCharacterEffectEquip(int c)
 	}
 }
 */
+
 void SetCharacterEffectEquip(int c)
+//void SetCharacterEffectEquip(int c, CNewUIMyInventory* pInventory)
 {
+	EnterCriticalSection(&pNewUIMyInventory->m_CharacterMachinCS);
 	std::ofstream logfile("inventory_debug.log", std::ios::app);
 	if (logfile.is_open())
 	{
@@ -365,6 +385,28 @@ void SetCharacterEffectEquip(int c)
 	}
 	int v3;
 	int v6;
+	
+	if (logfile.is_open()) {
+		logfile << "SetCharacterEffectEquip called" << std::endl;
+		logfile << "c address: " << c << std::endl;
+		logfile << "Character_Machin address: " << Character_Machin << std::endl;
+		if (Character_Machin != nullptr) {
+			logfile << "Character_Machin->Equipment address: " << Character_Machin->Equipment << std::endl;
+		}
+		else {
+			logfile << "Character_Machin is nullptr!" << std::endl;
+		}
+		logfile << "*(DWORD*)(c + 824): " << *(DWORD*)(c + 824) << std::endl;
+	}
+
+	if (Character_Machin == nullptr) {
+		if (logfile.is_open()) {
+			logfile << "Character_Machin is nullptr, exiting SetCharacterEffectEquip" << std::endl;
+			logfile.close();
+		}
+		LeaveCriticalSection(&pNewUIMyInventory->m_CharacterMachinCS);
+		return; // Thoát khỏi hàm nếu Character_Machin là nullptr
+	}
 
 	//std::ofstream logfile("inventory_debug.log", std::ios::app);
 	if (logfile.is_open())
@@ -373,15 +415,14 @@ void SetCharacterEffectEquip(int c)
 		logfile << "c address: " << c << std::endl;
 		logfile << "Character_Machin address: " << Character_Machin << std::endl;
 
-		if (Character_Machin != nullptr)
-		{
+		if (Character_Machin != nullptr && Character_Machin->Equipment != nullptr) {
 			logfile << "Character_Machin->Equipment address: " << Character_Machin->Equipment << std::endl;
 		}
-		else
-		{
-			logfile << "Character_Machin is nullptr!" << std::endl;
+		else {
+			logfile << "Character_Machin or Character_Machin->Equipment is nullptr!" << std::endl;
 		}
 
+	
 		logfile << "*(DWORD*)(c + 824): " << *(DWORD*)(c + 824) << std::endl;
 	}
 
@@ -396,15 +437,32 @@ void SetCharacterEffectEquip(int c)
 	if (*(DWORD*)(c + 824) == 1163)
 	{
 		int pt = 0;
+
 		for (int i = 0; i < 3; i++)
 		{
+			
+		
 			if (i == 0 || i == 1)
 			{
-				v6 = (DWORD)&Character_Machin->Equipment[i];
+				if (Character_Machin != nullptr) // Thêm kiểm tra
+				{
+					v6 = CharacterMachine_Equipment(i);
+				}
+				else
+				{
+					return;
+				}
 			}
 			else
 			{
-				v6 = (DWORD)&Character_Machin->Equipment[EQUIPMENT_WING];
+				if (Character_Machin != nullptr) // Thêm kiểm tra
+				{
+					v6 = CharacterMachine_Equipment(EQUIPMENT_WING);
+				}
+				else
+				{
+					return;
+				}
 			}
 
 			if (logfile.is_open())
@@ -412,20 +470,41 @@ void SetCharacterEffectEquip(int c)
 				logfile << "Loop i: " << i << ", v6 before check: " << v6 << std::endl;
 			}
 			if (logfile.is_open()) {
-				logfile << "Character_Machin before line 415: " << Character_Machin << std::endl;
-				logfile << "v6 before line 415: " << v6 << std::endl;
-				
+				logfile << "Character_Machin before line 436: " << Character_Machin << std::endl;
+				logfile << "v6 before line 436: " << v6 << std::endl;
 			}
 
 			if (*(WORD*)v6 == 0xFFFF)
 			{
 				if (i == 0 || i == 1)
 				{
-					v6 = CharacterMachine_Equipment(i);
+					if (Character_Machin != nullptr) // Kiểm tra Character_Machin
+					{
+						v6 = (DWORD)&Character_Machin->Equipment[i];
+					}
+					else
+					{
+						// Xử lý lỗi Character_Machin là nullptr
+						//std::ofstream logfile("inventory_debug.log", std::ios::app);
+						if (logfile.is_open())
+						{
+							logfile << "Error: Character_Machin is nullptr!" << std::endl;
+							//logfile.close();
+						}
+						return; // Thoát khỏi hàm
+					}
 				}
 				else
 				{
-					v6 = CharacterMachine_Equipment(EQUIPMENT_WING);
+					//v6 = CharacterMachine_Equipment(EQUIPMENT_WING);
+					if (Character_Machin != nullptr) // Thêm kiểm tra
+					{
+						v6 = CharacterMachine_Equipment(EQUIPMENT_WING);
+					}
+					else
+					{
+						return;
+					}
 				}
 
 				if (logfile.is_open())
@@ -437,6 +516,13 @@ void SetCharacterEffectEquip(int c)
 			if (logfile.is_open())
 			{
 				logfile << "v6 after all checks: " << v6 << std::endl;
+               
+			}
+
+			if (v6 == 0 || IsBadReadPtr(reinterpret_cast<const void*>(v6), sizeof(WORD))) {
+				// Ghi log lỗi hoặc xử lý phù hợp
+				logfile << "v6 after all checks: " << v6 << std::endl;
+				return;
 			}
 
 			if (*(WORD*)v6 == 0xFFFF)
@@ -563,6 +649,9 @@ void SetCharacterEffectEquip(int c)
 	{
 		logfile.close();
 	}
+	// ...
+	// ...
+	LeaveCriticalSection(&pNewUIMyInventory->m_CharacterMachinCS);
 }
 
 bool CNewUIMyInventory::NewUIManager_Render(int thls)
@@ -579,6 +668,7 @@ bool CNewUIMyInventory::NewUIManager_Render(int thls)
 #include <ctime>
 void CNewUIMyInventory::LoadImages()
 {
+	EnterCriticalSection(&g_pMyInventory.m_CharacterMachinCS); // Vào critical section
 	std::ofstream logfile("inventory_debug.log", std::ios::app);
 	if (logfile.is_open())
 	{
@@ -591,13 +681,18 @@ void CNewUIMyInventory::LoadImages()
 	((void(__cdecl*)())0x00836A60)();
 	LoadBitmapA("SPK\\newui_item_earring.tga", 891551, GL_LINEAR, GL_CLAMP, 1, 0);
 	LoadBitmapA("SPK\\newui_item_muunv2.tga", 891552, GL_LINEAR, GL_CLAMP, 1, 0);
-	Character_Machin = new CCharacterMachine;
+	Character_Machin = new CCharacterMachine;	
+	Character_Machin->Equipment = new zITEM[MAX_SLOT_MACHINE];
+	// ...
 
+
+	LeaveCriticalSection(&g_pMyInventory.m_CharacterMachinCS); // Ra khỏi critical section
 	
 	if (logfile.is_open())
 	{
 		time_t now = time(0);
 		char* dt = ctime(&now);
+        
 		logfile << "LoadImages called at: " << dt;
 		logfile << "Character_Machin after initialization: " << Character_Machin << std::endl; // Thêm log này
 		//logfile.close();

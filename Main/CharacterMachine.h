@@ -1,4 +1,5 @@
 #pragma once
+#include "NewUIMyInventory.h"
 
 #if(SLOTPET2)
 #define MAX_SOCKETS_				5
@@ -22,8 +23,9 @@
 #define REQUEST_DETACH_SOCKET_MIX	14
 //tue add
 #define IsMixSource						((int(__thiscall*)(void *thisa, int ip)) 0x00830100)
+#define MAX_SLOT_MACHINE			17
 /////////////////////////////////////////
-
+//#define MAX_SLOT_MACHINE			17
 enum ITEM_EX_SRC_TYPE
 {
 	ITEM_EX_SRC_EQUIPMENT1 = 1,
@@ -162,6 +164,7 @@ public:
 	bool IsEquipable(int iIndex, zITEM* pItem);
 	bool EquipmentWindowProcess();
 	bool UnEquipmentWindowProcess(int m_iPointedSlot, int TypeInventory);
-	zITEM Equipment[16];
+	//zITEM Equipment[16];
+	zITEM* Equipment; 
 };
 #endif
